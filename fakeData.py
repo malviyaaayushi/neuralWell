@@ -22,10 +22,11 @@ def rfiCurtain(img_name, op_path, size_x, size_y, rfi_axis, rfi_start, rfi_width
 			img[i][j] = intensity
 			dataString.append(intensity)
 	populateData(img_name,dataString)
-	#plotImg(img, op_path+img_name+'.png')
+	plotImg(img, op_path+img_name+'.png')
 
 def pulsarCurtain(img_name, op_path, size_x, size_y, rfi_start_x, rfi_end_x, rfi_start_y, rfi_end_y, rfi_width, binary):
-	dataString = "0"
+	dataString = list()
+	dataString.append(0)
 	img = [[0 for j in range(size_x)] for i in range(size_y)]
 	c_1 = (((rfi_start_x+rfi_end_x)/2.0)*((rfi_start_y+rfi_end_y)/2.0))
 	c_2 = (((rfi_start_x+rfi_end_x)/2.0+rfi_width*0.1)*((rfi_start_y+rfi_end_y)/2.0+rfi_width*0.1))
@@ -39,7 +40,7 @@ def pulsarCurtain(img_name, op_path, size_x, size_y, rfi_start_x, rfi_end_x, rfi
 				bais = 0.1 if ((i*j>c_1 and i*j<c_2) or (i*j>c_3 and i*j<c_4)) else 0.0
 				intensity = 0 if coin < 0.01+bais else 1				
 			img[i][j] = intensity
-			dataString+=", "+str(intensity)
+			dataString.append(intensity)
 	populateData(img_name, dataString)
 	plotImg(img, op_path+img_name+'.png')
 
