@@ -9,25 +9,31 @@ import matplotlib.cm as cm
 def makePixel(binary):
 	return (1 if random.random() > 0.5 else 0) if binary else random.random()
 
-def rfiCurtain(img_name, op_path, size_x, size_y, rfi_axis, rfi_start, rfi_width, binary):
-	dataString = list()
-	dataString.append(1)
+def rfiCurtain(img_name, op_path, size_x, size_y, binary):
+	rfi_axis = 'x' if random.random()>0.5 else 'y'
+	if rfi_axis == 'x':
+		rfi_start = random.randint(1,size_x)
+		rfi_width = int(size_x/(10*random.randint(1,size_x)))
+	else:
+		rfi_start = random.randint(1,size_y)
+		rfi_width = int(size_y/(10*random.randint(1,size_y)))
 	img = [[0 for j in range(size_x)] for i in range(size_y)]
 	for i in range(size_y):
 		for j in range(size_x):
 			intensity = makePixel(binary)
-			if ((rfi_axis=='y' or rfi_axis=='Y') and (j>=rfi_start and j<=rfi_start+rfi_width)) or ((rfi_axis=='x' or rfi_axis=='X') and (i>=rfi_start and i<=rfi_start+rfi_width)):
-				bais = 0.1 if ((rfi_axis=='y' or rfi_axis=='Y') and (j<=rfi_start+int(rfi_width*0.1) or j>=rfi_start+int(rfi_width*0.1))) or ((rfi_axis=='x' or rfi_axis=='X') and (i<=rfi_start+int(rfi_width*0.1) and i>=rfi_start+int(rfi_width*0.9))) else 0.0
+			if ((rfi_axis=='y') and (j>=rfi_start and j<=rfi_start+rfi_width)) or ((rfi_axis=='x') and (i>=rfi_start and i<=rfi_start+rfi_width)):
+				bais = 0.1 if ((rfi_axis=='y') and (j<=rfi_start+int(rfi_width*0.1) or j>=rfi_start+int(rfi_width*0.1))) or ((rfi_axis=='x') and (i<=rfi_start+int(rfi_width*0.1) and i>=rfi_start+int(rfi_width*0.9))) else 0.0
 				intensity = 0 if random.random() < 0.01+bais else 1				
 			img[i][j] = intensity
-			dataString.append(intensity)
-	#populateData(img_name,dataString)
+	return (np.matrix(img),1)
 	#plotImg(img, op_path+img_name+'.png')
-	pickleData(img_name, dataString)
 
-def pulsarCurtain(img_name, op_path, size_x, size_y, rfi_start_x, rfi_end_x, rfi_start_y, rfi_end_y, rfi_width, binary):
-	dataString = list()
-	dataString.append(0)
+def pulsarCurtain(img_name, op_path, size_x, size_y, binary):
+	rfi_start_x = random.randint(1,size_x)
+	rfi_end_x =  random.randint(1+rfi_start_x,size_x)
+	rfi_start_y = random.randint(1,size_y)
+	rfi_end_y = random.randint(1+rfi_start_y,size_y)
+	rfi_width = random.randint(1,3)
 	img = [[0 for j in range(size_x)] for i in range(size_y)]
 	c_1 = (((rfi_start_x+rfi_end_x)/2.0)*((rfi_start_y+rfi_end_y)/2.0))
 	c_2 = (((rfi_start_x+rfi_end_x)/2.0+rfi_width*0.1)*((rfi_start_y+rfi_end_y)/2.0+rfi_width*0.1))
@@ -41,10 +47,8 @@ def pulsarCurtain(img_name, op_path, size_x, size_y, rfi_start_x, rfi_end_x, rfi
 				bais = 0.1 if ((i*j>c_1 and i*j<c_2) or (i*j>c_3 and i*j<c_4)) else 0.0
 				intensity = 0 if coin < 0.01+bais else 1				
 			img[i][j] = intensity
-			dataString.append(intensity)
-	#populateData(img_name, dataString)
+	return (np.matrix(img),-1)
 	#plotImg(img, op_path+img_name+'.png')
-	pickleData(img_name, dataString)
 
 def plotImg(img, imgName=''):
 	H = np.matrix(img)
@@ -56,60 +60,35 @@ def plotImg(img, imgName=''):
 	plt.savefig(imgName)
 
 
-def populateData(imgName, dataString):
-	document = dict(
-		imgName = imgName,
-		dataString = dataString
-	)
-	with open("dataFile.yaml", "a") as dataFile:
-		dataFile.write(yaml.dump(document, default_flow_style=True))
-	#doc = open('dataFile.yaml').read()
-	#print(yaml.load(doc))
+def generateRandomData(img_name, op_path, size_x, size_y, binary):
+	if(random.random()>0.5):
+		return rfiCurtain(img_name, op_path, size_x, size_y, binary)
+	else:
+		return pulsarCurtain(img_name, op_path, size_x, size_y, binary)
 
-def pickleData(imgName, dataString):
-	document = dict(
-		imgName = imgName,
-		dataString = dataString
-	)
-	# with open("dataFile.pkl", "wb") as dataFile:
-	# 	pickle.dump(document, dataFile)
-	# dataFile.close()
-
-	with gzip.open("data/data.pkl.gz", "wb") as zipFile:
-		pickle.dump(document, zipFile)
-	zipFile.close()
-
-	with gzip.open("data/data.pkl.gz", "rb") as f:
-		file_content = f.read()
-	print(file_content)
+def generateNormalData():
+	pass
 
 if __name__ == "__main__":
-	if len(sys.argv)!=11:
-		print ("Usage: fakeData.py op_path size_x size_y rfi_start_range_x rfi_end_range_x rfi_start_range_y rfi_end_range_y rfi_width num_images binary")
+	if len(sys.argv)!=6:
+		print ("Usage: fakeData.py op_path size_x size_y binary num_images")
 		exit(-1)
 
 	op_path = sys.argv[1]+"/"
 	size_x = int(sys.argv[2])
 	size_y = int(sys.argv[3])	
-	rfi_start_range_x = int(sys.argv[4])
-	rfi_end_range_x = int(sys.argv[5])
-	rfi_start_range_y = int(sys.argv[6])
-	rfi_end_range_y = int(sys.argv[7])
-	rfi_width = int(sys.argv[8])
-	num_images = int(sys.argv[9])
-	binary = 1 if int(sys.argv[10]) else 0
+	binary = 1 if int(sys.argv[4]) else 0
+	num_images = int(sys.argv[5])
 	
-	if(not rfi_start_range_x and not rfi_end_range_x):
-		rfi_axis = 'y'
-		for i in range(num_images):
-			rfi_start = random.randint(rfi_start_range_y, rfi_end_range_y)
-			rfiCurtain(rfi_axis+"_"+str(i), op_path, size_x, size_y, rfi_axis, rfi_start, rfi_width, binary)
-	elif(not rfi_start_range_y and not rfi_end_range_y):
-		rfi_axis = 'x'
-		for i in range(num_images):
-			rfi_start = random.randint(rfi_start_range_x, rfi_end_range_x)
-			rfiCurtain(rfi_axis+"_"+str(i), op_path, size_x, size_y, rfi_axis, rfi_start, rfi_width, binary)
-	else:
-		rfi_axis = 'pulsar'
-		for i in range(num_images):
-			pulsarCurtain(rfi_axis+"_"+str(i), op_path, size_x, size_y, rfi_start_range_x, rfi_end_range_x, rfi_start_range_y, rfi_end_range_y, rfi_width, binary)
+	samples = list()
+	for imgcnt in xrange(1,num_images):
+		img_name = "img_"+str(imgcnt)
+		samples.append(generateRandomData(img_name, op_path, size_x, size_y, binary))
+
+	with gzip.open("data/data.pkl.gz", "wb") as zipFile:
+		pickle.dump(samples, zipFile)
+	zipFile.close()
+
+	with gzip.open("data/data.pkl.gz", "rb") as f:
+		file_content = f.read()
+	print(file_content)
