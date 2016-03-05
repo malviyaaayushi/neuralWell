@@ -114,6 +114,6 @@ if __name__ == "__main__":
 	training_data, validation_data, test_data = pickle.load(f)
 	f.close()
 	
-	#for x,y in zip(training_data[0], training_data[1]):
-	#	print(x)
-	#	print(y)
+	for x,y in zip(training_data[0], training_data[1]):
+		print(x)
+		print(y)
