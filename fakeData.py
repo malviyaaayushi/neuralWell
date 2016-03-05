@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import sys, random, os, yaml
+import sys, random, os, yaml, pickle, gzip
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,8 +21,9 @@ def rfiCurtain(img_name, op_path, size_x, size_y, rfi_axis, rfi_start, rfi_width
 				intensity = 0 if random.random() < 0.01+bais else 1				
 			img[i][j] = intensity
 			dataString.append(intensity)
-	populateData(img_name,dataString)
-	plotImg(img, op_path+img_name+'.png')
+	#populateData(img_name,dataString)
+	#plotImg(img, op_path+img_name+'.png')
+	pickleData(img_name, dataString)
 
 def pulsarCurtain(img_name, op_path, size_x, size_y, rfi_start_x, rfi_end_x, rfi_start_y, rfi_end_y, rfi_width, binary):
 	dataString = list()
@@ -41,8 +42,9 @@ def pulsarCurtain(img_name, op_path, size_x, size_y, rfi_start_x, rfi_end_x, rfi
 				intensity = 0 if coin < 0.01+bais else 1				
 			img[i][j] = intensity
 			dataString.append(intensity)
-	populateData(img_name, dataString)
-	plotImg(img, op_path+img_name+'.png')
+	#populateData(img_name, dataString)
+	#plotImg(img, op_path+img_name+'.png')
+	pickleData(img_name, dataString)
 
 def plotImg(img, imgName=''):
 	H = np.matrix(img)
@@ -63,6 +65,23 @@ def populateData(imgName, dataString):
 		dataFile.write(yaml.dump(document, default_flow_style=True))
 	#doc = open('dataFile.yaml').read()
 	#print(yaml.load(doc))
+
+def pickleData(imgName, dataString):
+	document = dict(
+		imgName = imgName,
+		dataString = dataString
+	)
+	# with open("dataFile.pkl", "wb") as dataFile:
+	# 	pickle.dump(document, dataFile)
+	# dataFile.close()
+
+	with gzip.open("data/data.pkl.gz", "wb") as zipFile:
+		pickle.dump(document, zipFile)
+	zipFile.close()
+
+	with gzip.open("data/data.pkl.gz", "rb") as f:
+		file_content = f.read()
+	print(file_content)
 
 if __name__ == "__main__":
 	if len(sys.argv)!=11:
