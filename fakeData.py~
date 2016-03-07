@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import sys, random, os, yaml, pickle, gzip
+import sys, random, os, pickle, gzip
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,15 +25,15 @@ def rfiCurtain(img_name, op_path, size_x, size_y, binary):
 				bais = 0.1 if ((rfi_axis=='y') and (j<=rfi_start+int(rfi_width*0.1) or j>=rfi_start+int(rfi_width*0.1))) or ((rfi_axis=='x') and (i<=rfi_start+int(rfi_width*0.1) and i>=rfi_start+int(rfi_width*0.9))) else 0.0
 				intensity = 0 if random.random() < 0.01+bais else 1				
 			img[i][j] = intensity
-	return (np.matrix(img),1)
-	#plotImg(img, op_path+img_name+'.png')
+	return (np.matrix(img), np.matrix([[1]]))
+	#plotImg(img, op_path+str(rfi_axis)+'_'+img_name+'.png')
 
 def pulsarCurtain(img_name, op_path, size_x, size_y, binary):
-	rfi_start_x = random.randint(1,size_x)
+	rfi_start_x = random.randint(1,size_x-1)
 	rfi_end_x =  random.randint(1+rfi_start_x,size_x)
-	rfi_start_y = random.randint(1,size_y)
+	rfi_start_y = random.randint(1,size_y-1)
 	rfi_end_y = random.randint(1+rfi_start_y,size_y)
-	rfi_width = random.randint(1,3)
+	rfi_width = random.randint(1,2)
 	img = [[0 for j in range(size_x)] for i in range(size_y)]
 	c_1 = (((rfi_start_x+rfi_end_x)/2.0)*((rfi_start_y+rfi_end_y)/2.0))
 	c_2 = (((rfi_start_x+rfi_end_x)/2.0+rfi_width*0.1)*((rfi_start_y+rfi_end_y)/2.0+rfi_width*0.1))
@@ -47,7 +47,7 @@ def pulsarCurtain(img_name, op_path, size_x, size_y, binary):
 				bais = 0.1 if ((i*j>c_1 and i*j<c_2) or (i*j>c_3 and i*j<c_4)) else 0.0
 				intensity = 0 if coin < 0.01+bais else 1				
 			img[i][j] = intensity
-	return (np.matrix(img),-1)
+	return (np.matrix(img),np.matrix([[-1]]))
 	#plotImg(img, op_path+img_name+'.png')
 
 def plotImg(img, imgName=''):
@@ -67,11 +67,35 @@ def generateRandomData(img_name, op_path, size_x, size_y, binary):
 		return pulsarCurtain(img_name, op_path, size_x, size_y, binary)
 
 def generateNormalData(img_name, op_path, size_x, size_y, binary):
+	img = [[0 for j in range(size_x)] for i in range(size_y)]
 	for i in range(size_y):
 		for j in range(size_x):
 			intensity = makePixel(binary)		
 			img[i][j] = intensity
 	return (np.matrix(img),0)
+
+def compressData(samples):
+	training_data = []
+	validation_data = []
+	test_data = []
+	j = 0 # counter
+	num_samples = len(samples)
+	random.shuffle(samples)
+	for data in samples:
+		if j<int(0.1*num_samples):
+			validation_data += [data]
+		elif j<int(0.3*num_samples):
+			test_data += [data]
+		else:
+			training_data += [data]
+		j+=1
+	validation_data = [list(d) for d in zip(*validation_data)]
+	test_data = [list(d) for d in zip(*test_data)]
+	training_data = [list(d) for d in zip(*training_data)]
+	print("Saving data. This may take a few minutes.")
+	f = gzip.open("data/data.pkl.gz", "w")
+	pickle.dump((training_data, validation_data, test_data), f)
+	f.close()
 
 if __name__ == "__main__":
 	if len(sys.argv)!=6:
@@ -87,12 +111,15 @@ if __name__ == "__main__":
 	samples = list()
 	for imgcnt in xrange(1,num_images):
 		img_name = "img_"+str(imgcnt)
-		#samples.append(generateRandomData(img_name, op_path, size_x, size_y, binary))
+		samples.append(generateRandomData(img_name, op_path, size_x, size_y, binary))
 		samples.append(generateNormalData(img_name, op_path, size_x, size_y, binary))
-	with gzip.open("data/data.pkl.gz", "wb") as zipFile:
-		pickle.dump(samples, zipFile)
-	zipFile.close()
+	
+	compressData(samples)
 
-	with gzip.open("data/data.pkl.gz", "rb") as f:
-		file_content = f.read()
-	print(file_content)
+	f = gzip.open("data/data.pkl.gz", 'rb')
+	training_data, validation_data, test_data = pickle.load(f)
+	f.close()
+	
+	#for x,y in zip(training_data[0], training_data[1]):
+	#	print(x)
+	#	print(y)
